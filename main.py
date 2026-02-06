@@ -1,70 +1,81 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
-def dans_alphabet(c):
-    return 'A' <= c <= 'Z'
-def transition (etat_ancien, lettre) :
-    nouv_etat = etat_ancien
-    if dans_alphabet(lettre) :
-        if etat_ancien == 8:
-            if lettre == 'W':
-                nouv_etat = 4
-            elif lettre == 'I':
-                nouv_etat = 9
-            else : nouv_etat = 3
-        elif etat_ancien == 4:
-            if lettre == 'H':
-                nouv_etat = 5
-            else:
-                nouv_etat = 3
-        elif etat_ancien == 9:
-            if lettre == 'F':
-                nouv_etat = 2
-            else:
-                nouv_etat = 3
-        elif etat_ancien == 5:
-            if lettre == 'I':
-                nouv_etat = 6
-            else:
-                nouv_etat = 3
-        elif etat_ancien == 6:
-            if lettre == 'L':
-                nouv_etat = 7
-            else:
-                nouv_etat = 3
-        elif etat_ancien == 7:
-            if lettre == 'E':
-                nouv_etat = 1
-            else:
-                nouv_etat = 3
+"""
+Project: Deterministic Finite Automaton Simulation (Automaton A)
+Course: Theory of Languages
 
-    print(lettre, "  ", etat_ancien ,"->", nouv_etat)
-    return nouv_etat
-etat_initial = 8
-etats_finaux = {1, 2, 3}
-etat_actuel = 8
+"""
 
-def automate(etat_depart, mot):
-    global etat_actuel
-    etat_actuel = etat_depart
-    for lettre in mot:
+import string
+
+# Alphabet Δ = {A..Z}
+ALPHABET = set(string.ascii_uppercase)
+
+# States
+INITIAL_STATE = 8
+FINAL_STATES = {1, 2, 3}
+
+# Special transitions table
+SPECIAL_TRANSITIONS = {
+    8: {'W': 4, 'I': 9},
+    4: {'H': 5},
+    5: {'I': 6},
+    6: {'L': 7},
+    7: {'E': 1},
+    9: {'F': 2},
+}
+
+def is_in_alphabet(c: str) -> bool:
+    return c in ALPHABET
+
+def transition(state: int, symbol: str) -> int:
+    if not is_in_alphabet(symbol):
+        raise ValueError(f"Invalid symbol: {symbol}")
+
+    # States 1 and 2 always go to 3
+    if state in (1, 2):
+        next_state = 3
+
+    # State 3 loops on itself
+    elif state == 3:
+        next_state = 3
+
+    # Other states: use table, otherwise go to 3
+    else:
+        next_state = SPECIAL_TRANSITIONS.get(state, {}).get(symbol, 3)
+
+    print(symbol, " ", state, "->", next_state)
+    return next_state
+
+def normalize_input(s: str) -> str:
+    s = s.strip()
+    if s in {'ε', 'epsilon', 'EPSILON'}:
+        return ''
+    return s.replace(' ', '').upper()
+
+def run_automaton(start_state: int, word: str):
+    current = start_state
+    path = [current]
+
+    for ch in word:
+        current = transition(current, ch)
+        path.append(current)
+
+    return current in FINAL_STATES, path
 
 
-        etat_actuel = transition(etat_actuel, lettre)
-        if etat_actuel is None:
-            return False
-    return etat_actuel in etats_finaux
+if __name__ == "__main__":
+    word = normalize_input(input("Enter a word over Δ={A..Z} (or ε): "))
 
-print(automate(etat_initial, "A"))
-print(automate(etat_initial, "B"))
-print(automate(etat_initial,"C"))
-print(automate(etat_initial, "WHILE"))
-print(automate(etat_initial, "D"))
-print(automate(etat_initial,"IF"))
+    try:
+        accepted, path = run_automaton(INITIAL_STATE, word)
+        decision = "ACCEPTED" if accepted else "REJECTED"
+        display_word = word if word != '' else 'ε'
 
-print("--------------------------")
+        print("\nWord:", display_word)
+        print("Decision:", decision)
+        print("Path:", " -> ".join(map(str, path)))
 
-print(automate(etat_initial, "W"))
-print(automate(etat_initial, "I"))
-print(automate(etat_initial, "WHIL"))
-print(automate(etat_initial, "WH"))
-print(automate(etat_initial, "WHI"))
-
+    except ValueError as e:
+        print("Error:", e)
